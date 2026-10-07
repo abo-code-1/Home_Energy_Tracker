@@ -1,0 +1,45 @@
+services:
+  user-service-db:
+    image: postgres:latest
+    container_name: user-service-db
+    ports:
+      - "5001:5432"
+    networks:
+      - internal
+    environment:
+      POSTGRES_DB: test
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+        - /Users/a1/db_volumes/user-service-db:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d test"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+
+  user-service:
+    build:
+      context: ./user-service
+      dockerfile: Dockerfile
+    container_name: user-service
+    ports:
+      - "4001:4000"
+    networks:
+      - internal
+    depends_on:
+      user-service-db:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://user-service-db:5432/test
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_SQL_INIT_MODE: always
+
+
+networks:
+  internal:
+    driver: bridge
+
